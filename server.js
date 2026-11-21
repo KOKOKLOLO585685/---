@@ -7,13 +7,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'users.json');
 
-// قراءة بيانات JSON القادمة من الواجهة الأمامية
-app.use(express.json());
+// تخزين الجلسات النشطة في الذاكرة (مفتاح الجلسة -> بيانات المستخدم)
+const activeSessions = new Map();
 
-// خدمة ملفات الواجهة الثابتة من مجلد المشروع
+app.use(express.json());
 app.use(express.static(__dirname));
 
-// قراءة الحسابات المحفوظة من الملف
 function readUsers() {
     if (!fs.existsSync(DB_FILE)) {
         return [];
@@ -26,19 +25,16 @@ function readUsers() {
     }
 }
 
-// حفظ الحسابات في الملف
 function writeUsers(users) {
     fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2), 'utf8');
 }
 
-// تشفير كلمة المرور باستخدام scrypt مع salt عشوائي
 function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.scryptSync(password, salt, 64).toString('hex');
     return `${salt}:${hash}`;
 }
 
-// التحقق من كلمة المرور بأمان
 function verifyPassword(password, stored) {
     if (!stored || !stored.includes(':')) {
         return false;
@@ -52,12 +48,53 @@ function verifyPassword(password, stored) {
     return crypto.timingSafeEqual(keyBuf, derivedBuf);
 }
 
-// مسار فحص جاهزية السيرفر للمراقبة المستمرة
+function createSessionToken(user) {
+    const token = crypto.randomBytes(32).toString('hex');
+    activeSessions.set(token, {
+        id: user.id,
+        username: user.username,
+        createdAt: Date.now()
+    });
+    return token;
+}
+
+function getUserFromRequest(req) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (!token) return null;
+    return activeSessions.get(token) || null;
+}
+
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-// مسار إنشاء حساب جديد
+// التحقق من وجود جلسة محفوظة وصحيحة
+app.get('/api/me', (req, res) => {
+    const sessionUser = getUserFromRequest(req);
+    if (!sessionUser) {
+        return res.status(401).json({ loggedIn: false });
+    }
+    return res.json({
+        loggedIn: true,
+        user: {
+            id: sessionUser.id,
+            username: sessionUser.username
+        }
+    });
+});
+
+// تسجيل خروج وإلغاء الجلسة المحفوظة
+app.post('/api/logout', (req, res) => {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (token) {
+        activeSessions.delete(token);
+    }
+    return res.json({ message: 'تم تسجيل الخروج' });
+});
+
+// إنشاء حساب جديد
 app.post('/api/signup', (req, res) => {
     const { username, email, password } = req.body || {};
 
@@ -92,8 +129,11 @@ app.post('/api/signup', (req, res) => {
     users.push(newUser);
     writeUsers(users);
 
+    const token = createSessionToken(newUser);
+
     return res.status(201).json({
         message: 'تم إنشاء حساب',
+        token,
         user: {
             id: newUser.id,
             username: newUser.username,
@@ -102,7 +142,7 @@ app.post('/api/signup', (req, res) => {
     });
 });
 
-// مسار تسجيل الدخول عبر اسم المستخدم
+// تسجيل الدخول عبر اسم المستخدم وإرجاع رمز الجلسة
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body || {};
 
@@ -120,8 +160,11 @@ app.post('/api/login', (req, res) => {
         return res.status(401).json({ message: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
 
+    const token = createSessionToken(user);
+
     return res.json({
         message: 'تم تسجيل دخول',
+        token,
         user: {
             id: user.id,
             username: user.username
@@ -129,7 +172,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// مسار استعادة كلمة المرور عبر اسم المستخدم
+// استعادة كلمة المرور عبر اسم المستخدم
 app.post('/api/forgot-password', (req, res) => {
     const { username } = req.body || {};
 
@@ -152,7 +195,6 @@ app.post('/api/forgot-password', (req, res) => {
     });
 });
 
-// حماية السيرفر من الأخطاء غير المتوقعة ليبقى شغالًا
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
