@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب وتسجيل الدخول</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="container">
+        <!-- بطاقة تسجيل الدخول عبر اسم المستخدم -->
+        <div class="box login-box" id="loginBox">
+            <h2>تسجيل الدخول</h2>
+            <form id="loginForm">
+                <input type="text" id="loginUsername" placeholder="اسم المستخدم" required>
+                <input type="password" id="loginPassword" placeholder="كلمة المرور" required>
+
+                <div class="form-options">
+                    <button type="button" id="forgotPasswordBtn" class="forgot-btn">نسيت كلمة المرور؟</button>
+                </div>
+
+                <button type="submit" class="submit-btn">تسجيل الدخول</button>
+                <div id="loginMessage" class="auth-message"></div>
+            </form>
+        </div>
+
+        <!-- بطاقة إنشاء حساب -->
+        <div class="box signup-box" id="signupBox">
+            <h2>إنشاء حساب</h2>
+            <form id="signupForm">
+                <input type="text" id="signupUsername" placeholder="اسم المستخدم" required>
+                <input type="email" id="signupEmail" placeholder="البريد الإلكتروني" required>
+                <input type="password" id="signupPassword" placeholder="كلمة المرور" required>
+                <button type="submit" class="submit-btn">إنشاء حساب</button>
+                <div id="signupMessage" class="auth-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة نسيت كلمة المرور -->
+    <div class="modal-overlay" id="forgotModal">
+        <div class="modal-box">
+            <h3>استعادة كلمة المرور</h3>
+            <p>أدخل اسم المستخدم لاستعادة كلمة المرور.</p>
+            <form id="forgotForm">
+                <input type="text" id="resetUsername" placeholder="اسم المستخدم" required>
+                <div class="modal-actions">
+                    <button type="submit">تأكيد</button>
+                    <button type="button" id="closeModalBtn" class="cancel-btn">إغلاق</button>
+                </div>
+            </form>
+            <div id="resetStatus" class="reset-status"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
