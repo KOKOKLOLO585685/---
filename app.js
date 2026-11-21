@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     // روابط التنزيل الخارجية بعد تسجيل الدخول
-    const SIGNUP_REDIRECT_URL = 'https://example.com/welcome';
-    const XMOD_DOWNLOAD_URL = 'https://example.com/download/xmod';
-    const DEV_SERVER_DOWNLOAD_URL = 'https://example.com/download/dev-server';
+    const XMOD_DOWNLOAD_URL = 'https://www.ffxmodz.com/';
+    const DEV_SERVER_DOWNLOAD_URL = 'https://ff-advance.ff.garena.com/';
     const REDIRECT_DELAY_MS = 900;
 
     function showMessage(el, text, isError) {
