@@ -55,6 +55,19 @@
         </div>
     </div>
 
+    <!-- نافذة اختيار (إكس مود أو سيرفر المطورين) بعد تسجيل الدخول -->
+    <div class="modal-overlay" id="choiceModal">
+        <div class="modal-box choice-box">
+            <h3>تم تسجيل دخول</h3>
+            <p>اختر الخيار المطلوب للانتقال إلى رابط التنزيل:</p>
+            <div class="choice-buttons">
+                <button type="button" id="xmodBtn" class="choice-btn">إكس مود (X-Mod)</button>
+                <button type="button" id="devServerBtn" class="choice-btn">سيرفر المطورين</button>
+            </div>
+            <div id="choiceStatus" class="reset-status"></div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
