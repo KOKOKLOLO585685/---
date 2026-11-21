@@ -1,21 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // غيّر هذه الروابط إلى الروابط الخارجية المطلوبة
-    const LOGIN_REDIRECT_URL = 'https://amine-stodio.netlify.app/';
-    const REDIRECT_DELAY_MS = 1200; // مدة الانتظار قبل النقل (بالميلي ثانية)
-
-    const STORAGE_KEY = 'auth_colors_users';
-
-    function getUsers() {
-        try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        } catch {
-            return [];
-        }
-    }
-
-    function saveUsers(users) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-    }
+    // روابط التنزيل الخارجية بعد تسجيل الدخول
+    const SIGNUP_REDIRECT_URL = 'https://example.com/welcome';
+    const XMOD_DOWNLOAD_URL = 'https://example.com/download/xmod';
+    const DEV_SERVER_DOWNLOAD_URL = 'https://example.com/download/dev-server';
+    const REDIRECT_DELAY_MS = 900;
 
     function showMessage(el, text, isError) {
         if (!el) return;
@@ -30,59 +18,106 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // إنشاء حساب
-    const signupForm = document.getElementById('signupForm');
-    const signupMessage = document.getElementById('signupMessage');
+    // عناصر نافذة الاختيار بعد تسجيل الدخول
+    const choiceModal = document.getElementById('choiceModal');
+    const xmodBtn = document.getElementById('xmodBtn');
+    const devServerBtn = document.getElementById('devServerBtn');
+    const choiceStatus = document.getElementById('choiceStatus');
 
-    if (signupForm) {
-        signupForm.addEventListener('submit', function () {
-            const username = document.getElementById('signupUsername').value.trim();
-            const email = document.getElementById('signupEmail').value.trim();
-            const password = document.getElementById('signupPassword').value;
+    function openChoiceModal(username) {
+        if (choiceStatus) {
+            choiceStatus.textContent = username ? 'مرحبًا ' + username + '، اختر وجهتك.' : '';
+        }
+        if (choiceModal) {
+            choiceModal.classList.add('show');
+        }
+    }
 
-            const users = getUsers();
-            const exists = users.some(function (u) {
-                return u.username.toLowerCase() === username.toLowerCase();
-            });
-
-            if (exists) {
-                showMessage(signupMessage, 'اسم المستخدم مستخدم بالفعل', true);
-                return;
+    if (xmodBtn) {
+        xmodBtn.addEventListener('click', function () {
+            if (choiceStatus) {
+                choiceStatus.textContent = 'جاري الانتقال إلى رابط تنزيل إكس مود...';
             }
-
-            users.push({ username: username, email: email, password: password });
-            saveUsers(users);
-            signupForm.reset();
-
-            showMessage(signupMessage, 'تم إنشاء حساب', false);
             setTimeout(function () {
-                window.location.href = SIGNUP_REDIRECT_URL;
+                window.location.href = XMOD_DOWNLOAD_URL;
             }, REDIRECT_DELAY_MS);
         });
     }
 
-    // تسجيل الدخول عبر اسم المستخدم
+    if (devServerBtn) {
+        devServerBtn.addEventListener('click', function () {
+            if (choiceStatus) {
+                choiceStatus.textContent = 'جاري الانتقال إلى رابط تنزيل سيرفر المطورين...';
+            }
+            setTimeout(function () {
+                window.location.href = DEV_SERVER_DOWNLOAD_URL;
+            }, REDIRECT_DELAY_MS);
+        });
+    }
+
+    // إنشاء حساب عبر السيرفر
+    const signupForm = document.getElementById('signupForm');
+    const signupMessage = document.getElementById('signupMessage');
+
+    if (signupForm) {
+        signupForm.addEventListener('submit', async function () {
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showMessage(signupMessage, data.message || 'حدث خطأ', true);
+                    return;
+                }
+
+                signupForm.reset();
+                showMessage(signupMessage, data.message || 'تم إنشاء حساب', false);
+                setTimeout(function () {
+                    window.location.href = SIGNUP_REDIRECT_URL;
+                }, REDIRECT_DELAY_MS);
+            } catch {
+                showMessage(signupMessage, 'تعذر الاتصال بالسيرفر', true);
+            }
+        });
+    }
+
+    // تسجيل الدخول عبر اسم المستخدم ثم فتح نافذة اختيار إكس مود أو سيرفر المطورين
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
 
     if (loginForm) {
-        loginForm.addEventListener('submit', function () {
+        loginForm.addEventListener('submit', async function () {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
 
-            const users = getUsers();
-            const user = users.find(function (u) {
-                return u.username.toLowerCase() === username.toLowerCase() && u.password === password;
-            });
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
 
-            if (user) {
+                if (!res.ok) {
+                    showMessage(loginMessage, data.message || 'بيانات غير صحيحة', true);
+                    return;
+                }
+
                 loginForm.reset();
-                showMessage(loginMessage, 'تم تسجيل دخول', false);
+                showMessage(loginMessage, data.message || 'تم تسجيل دخول', false);
                 setTimeout(function () {
-                    window.location.href = LOGIN_REDIRECT_URL;
-                }, REDIRECT_DELAY_MS);
-            } else {
-                showMessage(loginMessage, 'اسم المستخدم أو كلمة المرور غير صحيحة', true);
+                    openChoiceModal(data.user && data.user.username ? data.user.username : username);
+                }, 400);
+            } catch {
+                showMessage(loginMessage, 'تعذر الاتصال بالسيرفر', true);
             }
         });
     }
@@ -119,10 +154,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (forgotForm) {
-        forgotForm.addEventListener('submit', function () {
+        forgotForm.addEventListener('submit', async function () {
             const username = resetUsername ? resetUsername.value.trim() : '';
-            if (username && resetStatus) {
-                resetStatus.textContent = 'تم إرسال طلب استعادة كلمة المرور للمستخدم: ' + username;
+            if (!username || !resetStatus) return;
+
+            try {
+                const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await res.json();
+                resetStatus.textContent = data.message || 'تم إرسال الطلب';
+            } catch {
+                resetStatus.textContent = 'تعذر الاتصال بالسيرفر';
             }
         });
     }
